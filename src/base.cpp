@@ -74,6 +74,7 @@ void loop() {
         for (byte i = 0; i < radio.DATALEN; i++) {
             payloadJson += (char) radio.DATA[i];
         }
+        payloadJson += "}";
         webSocket.broadcastTXT(payloadJson);
 
         if (radio.ACK_REQUESTED) {
