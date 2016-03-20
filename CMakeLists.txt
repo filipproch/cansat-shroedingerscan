@@ -51,4 +51,5 @@ add_custom_target(
 add_executable(cansat
     src/base.cpp
     src/cansat.cpp
+    src/main.cpp
 )

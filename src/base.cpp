@@ -1,31 +1,25 @@
-//
-// Created by Filip Prochazka (@filipproch).
-//
 
 #include <Arduino.h>
 
-#include "MyRFM69.h"
-#include <CanSat.h>
-#include <ESP8266WiFi.h>
-#include <WebSocketsServer.h>
-#include <Hash.h>
-#include <SPI.h> //must be here
+#include "base.h"
 
-#define FREQUENCY     RF69_433MHZ
-
+//inicializace objektu komunikujicich s 433Mhz
 RFM69 radio(SS, 4, true, 4);
+//inicializace WebSocket serveru na portu 81
 WebSocketsServer webSocket = WebSocketsServer(81);
 
+//promena funguje jako buffer pro odesilani dat klientum
 String payloadJson(100);
 
-void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length) {
-    switch(type) {
+//nasloucha na pripojeni / odpojeni klientu k zakladne
+void Base::webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length) {
+    switch (type) {
         case WStype_DISCONNECTED:
-            Serial.printf("[%u] Disconnected!\n", num);
+            Serial.printf("[%u] Se odpojil!\n", num);
             break;
         case WStype_CONNECTED: {
             IPAddress ip = webSocket.remoteIP(num);
-            Serial.printf("[%u] Connected from %d.%d.%d.%d url: %s\n", num, ip[0], ip[1], ip[2], ip[3], payload);
+            Serial.printf("[%u] Se pripojil z adresy %d.%d.%d.%d URL: %s\n", num, ip[0], ip[1], ip[2], ip[3], payload);
             webSocket.sendTXT(num, "{\"result\":true}");
         }
             break;
@@ -35,50 +29,75 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
     }
 }
 
-void setup() {
-    //enable serial (debugging only)
+void Base::setup() {
+    //spousti seriovou komunikaci, baudrate 115200
     Serial.begin(115200);
     while (!Serial) { }
     Serial.println();
-    Serial.println("Serial communication is up");
+    Serial.println("Serial komunikace bezi");
 
-    //initialize WiFi
+    //spousti WiFi
     WiFi.mode(WIFI_AP);
+    //nastavi nazev site a pristupove heslo
     WiFi.softAP("ShroedingersCan", "mf123456");
-    Serial.println("WiFi AP initialized");
+    Serial.println("WiFi sit 'ShroedingersCan' bezi");
 
+    //spousti Server pro pripojeni klientu (prijem dat)
     webSocket.begin();
+    //nastavuje naslouchani na pripojeni novych klientu
     webSocket.onEvent(webSocketEvent);
 
-    //initialize RFM69 radio
-    Serial.println("Initializing RFM69 radio");
+    //nastavuje 433 Mhz radio
+    Serial.println("Nastavuji RFM69 radio");
     bool response = radio.initialize(FREQUENCY, BASE_ID, NETWORK_ID);
-    Serial.println(response);
-    radio.setHighPower();
-    radio.promiscuous(true);
-    radio.encrypt(ENCRYPTKEY);
-    Serial.println("Radio initialized, encryption enabled");
+    if (response) {
+        radio.setHighPower();
+        radio.promiscuous(true);
+        radio.encrypt(ENCRYPTKEY);
+        Serial.println("RFM69 nastaveno a pripojeno, sifrovani aktivni");
+    } else {
+        Serial.println("Komunikace s RFM69 selhala, zkontrolujte zapojeni...");
+        return;
+    }
+
+    //vsechno funguje, zarizeni je pripraveno
+    ready = true;
 }
 
-void loop() {
+void Base::loop() {
+
+    //obslouzi pripojene klienty a vyridi komunikaci
     webSocket.loop();
-    if (radio.receiveDone()) {
 
-        payloadJson = "{\"sender\":";
-        payloadJson += (int) radio.SENDERID;
-        payloadJson += ",\"rssi\":";
-        payloadJson += radio.RSSI;
-        payloadJson += ",\"length\":";
-        payloadJson += radio.DATALEN;
-        payloadJson += ",\"data\":";
-        for (byte i = 0; i < radio.DATALEN; i++) {
-            payloadJson += (char) radio.DATA[i];
-        }
-        payloadJson += "}";
-        webSocket.broadcastTXT(payloadJson);
+    //pokud vsechno funguje
+    if (ready) {
+        //pokud nam dorazila celá zpráva přes 433Mhz
+        if (radio.receiveDone()) {
 
-        if (radio.ACK_REQUESTED) {
-            radio.sendACK();
+            //pripravime si zpravu pro klienty
+            payloadJson = "{\"sender\":";
+            payloadJson += (int) radio.SENDERID;
+            payloadJson += ",\"rssi\":";
+            payloadJson += radio.RSSI;
+            payloadJson += ",\"length\":";
+            payloadJson += radio.DATALEN;
+            payloadJson += ",\"data\":";
+            for (byte i = 0; i < radio.DATALEN; i++) {
+                payloadJson += (char) radio.DATA[i];
+            }
+            payloadJson += "}";
+
+            //odesleme zpravu klientum
+            webSocket.broadcastTXT(payloadJson);
+
+            //pokud si vysilac vyzadal potvrzeni doruceni, odesleme ho
+            if (radio.ACK_REQUESTED) {
+                radio.sendACK();
+            }
         }
+    } else {
+        //zarizeni nefunguje, nic nedelame
+        Serial.println("Zarizeni neni ve funkcnim stavu, je vyzadovana akce");
+        delay(1000);
     }
 }
