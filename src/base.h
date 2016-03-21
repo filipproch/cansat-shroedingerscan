@@ -3,6 +3,7 @@
 #include <ESP8266WiFi.h>
 #include <WebSocketsServer.h>
 #include <Hash.h>
+#include <FS.h>
 
 #include "konstanty.h"
 

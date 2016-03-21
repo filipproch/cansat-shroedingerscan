@@ -14,6 +14,9 @@ void CanSat::setup() {
 
     //spustime I2C sbernici (jsou na ni pripojene senzory)
     Wire.begin(D2, D1);
+    
+    //otevre interni uloziste
+    SPIFFS.begin();
 
     //nastavime 433Mhz radio
     //Serial.println("nastavuji RFM69 radio");

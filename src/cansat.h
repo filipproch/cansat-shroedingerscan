@@ -4,6 +4,7 @@
 #include <SFE_BMP180.h>
 #include <SPI.h>
 #include <ESP8266WiFi.h>
+#include <FS.h>
 
 #include "I2Cdev.h"
 #include "MPU6050.h"
