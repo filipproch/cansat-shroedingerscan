@@ -13,17 +13,16 @@ class Base {
     public:
         void setup();
         void loop();
-
-        bool ready;
-
         Base();
     private:
+        bool ready;
+
         //inicializace objektu komunikujicich s 433Mhz
         RFM69 radio;
-        //inicializace WebSocket serveru na portu 81
-        WebSocketsServer webSocket;
         //promena funguje jako buffer pro odesilani dat klientum
         String payloadJson;
+        //inicializace WebSocket serveru na portu 81
+        WebSocketsServer* webSocket;
 };
 
 #endif //CANSAT_BASE_H

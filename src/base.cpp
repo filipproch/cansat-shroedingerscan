@@ -4,7 +4,7 @@
 #include "base.h"
 
 //konstruktor tridy, inicializace
-Base::Base() : webSocket(81), radio(SS, D2, true, D2), payloadJson(100) {
+Base::Base() : radio(SS, D2, true, D2), payloadJson(100) {
 }
 
 void Base::setup() {
@@ -23,7 +23,8 @@ void Base::setup() {
     Serial.println("WiFi sit 'ShroedingersCan' bezi");
 
     //spousti Server pro pripojeni klientu (prijem dat)
-    webSocket.begin();
+    this->webSocket = new WebSocketsServer(81);
+    this->webSocket->begin();
 
     //nastavuje 433 Mhz radio
     Serial.println("Nastavuji RFM69 radio");
@@ -45,12 +46,14 @@ void Base::setup() {
 void Base::loop() {
 
     //obslouzi pripojene klienty a vyridi komunikaci
-    webSocket.loop();
+    this->webSocket->loop();
 
     //pokud vsechno funguje
     if (ready) {
         //pokud nam dorazila celá zpráva přes 433Mhz
         if (radio.receiveDone()) {
+
+            Serial.println("received message");
 
             //pripravime si zpravu pro klienty
             payloadJson = "{\"sender\":";
@@ -65,8 +68,10 @@ void Base::loop() {
             }
             payloadJson += "}";
 
+            Serial.println(payloadJson);
+
             //odesleme zpravu klientum
-            webSocket.broadcastTXT(payloadJson);
+            this->webSocket->broadcastTXT(payloadJson);
 
             //pokud si vysilac vyzadal potvrzeni doruceni, odesleme ho
             if (radio.ACK_REQUESTED) {
@@ -78,4 +83,6 @@ void Base::loop() {
         Serial.println("Zarizeni neni ve funkcnim stavu, je vyzadovana akce");
         delay(1000);
     }
+
+    delay(100);
 }
