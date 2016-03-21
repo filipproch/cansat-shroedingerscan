@@ -52,4 +52,5 @@ add_executable(cansat
     src/base.cpp
     src/cansat.cpp
     src/main.cpp
+    src/konstanty.h
 )

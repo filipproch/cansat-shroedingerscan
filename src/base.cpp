@@ -3,38 +3,18 @@
 
 #include "base.h"
 
-//inicializace objektu komunikujicich s 433Mhz
-RFM69 radio(SS, 4, true, 4);
-//inicializace WebSocket serveru na portu 81
-WebSocketsServer webSocket = WebSocketsServer(81);
-
-//promena funguje jako buffer pro odesilani dat klientum
-String payloadJson(100);
-
-//nasloucha na pripojeni / odpojeni klientu k zakladne
-void Base::webSocketEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length) {
-    switch (type) {
-        case WStype_DISCONNECTED:
-            Serial.printf("[%u] Se odpojil!\n", num);
-            break;
-        case WStype_CONNECTED: {
-            IPAddress ip = webSocket.remoteIP(num);
-            Serial.printf("[%u] Se pripojil z adresy %d.%d.%d.%d URL: %s\n", num, ip[0], ip[1], ip[2], ip[3], payload);
-            webSocket.sendTXT(num, "{\"result\":true}");
-        }
-            break;
-        case WStype_TEXT:
-            //todo
-            break;
-    }
+//konstruktor tridy, inicializace
+Base::Base() : webSocket(81), radio(SS, D2, true, D2), payloadJson(100) {
 }
 
 void Base::setup() {
+    ready = false;
+
     //spousti seriovou komunikaci, baudrate 115200
     Serial.begin(115200);
     while (!Serial) { }
     Serial.println();
-    Serial.println("Serial komunikace bezi");
+    Serial.println("[BASE] Serial komunikace bezi");
 
     //spousti WiFi
     WiFi.mode(WIFI_AP);
@@ -44,8 +24,6 @@ void Base::setup() {
 
     //spousti Server pro pripojeni klientu (prijem dat)
     webSocket.begin();
-    //nastavuje naslouchani na pripojeni novych klientu
-    webSocket.onEvent(webSocketEvent);
 
     //nastavuje 433 Mhz radio
     Serial.println("Nastavuji RFM69 radio");

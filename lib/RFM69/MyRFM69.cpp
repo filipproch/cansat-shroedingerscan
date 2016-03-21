@@ -94,9 +94,6 @@ bool RFM69::initialize(byte freqBand, byte nodeID, byte networkID)
 
   pinMode(_slaveSelectPin, OUTPUT);
   SPI.begin();
-
-    Serial.println("SPI initialized");
-
   start_to = millis();
   do {
     writeReg(REG_SYNCVALUE1, 0xaa);
@@ -104,9 +101,6 @@ bool RFM69::initialize(byte freqBand, byte nodeID, byte networkID)
   } while (readReg(REG_SYNCVALUE1) != 0xaa && millis()-start_to < TIME_OUT);
 
   if (millis()-start_to >= TIME_OUT) return (false);
-
-    Serial.println("sync success");
-
   start_to = millis()  ;
   do {
     writeReg(REG_SYNCVALUE1, 0x55);
@@ -114,9 +108,6 @@ bool RFM69::initialize(byte freqBand, byte nodeID, byte networkID)
   } while (readReg(REG_SYNCVALUE1) != 0x55 && millis()-start_to < TIME_OUT);
 
   if (millis()-start_to >= TIME_OUT) return (false);
-
-    Serial.println("sync 2 success");
-
   for (byte i = 0; CONFIG[i][0] != 255; i++)
     writeReg(CONFIG[i][0], CONFIG[i][1]);
 
@@ -133,9 +124,6 @@ bool RFM69::initialize(byte freqBand, byte nodeID, byte networkID)
     yield();
   } // Wait for ModeReady
   if (millis()-start_to >= TIME_OUT) return (false);
-
-    Serial.println("is ready");
-
   attachInterrupt(_interruptNum, RFM69::isr0, RISING);
 
   selfPointer = this;
@@ -298,7 +286,6 @@ void RFM69::sendFrame(byte toAddress, const void* buffer, byte bufferSize, bool 
 }
 
 void RFM69::interruptHandler() {
-  Serial.println("interruptHandler()");
   //pinMode(4, OUTPUT);
   //digitalWrite(4, 1);
   if (_mode == RF69_MODE_RX && (readReg(REG_IRQFLAGS2) & RF_IRQFLAGS2_PAYLOADREADY))

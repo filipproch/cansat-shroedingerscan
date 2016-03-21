@@ -2,6 +2,7 @@
 #include "MyRFM69.h"
 #include <ESP8266WiFi.h>
 #include <WebSocketsServer.h>
+#include <Hash.h>
 
 #include "konstanty.h"
 
@@ -10,12 +11,19 @@
 
 class Base {
     public:
-        static void setup();
-        static void loop();
+        void setup();
+        void loop();
 
-        static bool ready;
+        bool ready;
+
+        Base();
     private:
-        void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length);
+        //inicializace objektu komunikujicich s 433Mhz
+        RFM69 radio;
+        //inicializace WebSocket serveru na portu 81
+        WebSocketsServer webSocket;
+        //promena funguje jako buffer pro odesilani dat klientum
+        String payloadJson;
 };
 
 #endif //CANSAT_BASE_H

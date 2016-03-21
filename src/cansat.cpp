@@ -1,32 +1,25 @@
 
 #include "cansat.h"
 
-#define VELIKOST_BUFFERU_ZRAVY 50
+CanSat::CanSat() : radio(SS, 0, true, 0), pressure(), accelgyro() {
+}
 
-// pomocne objekty pro komunikaci se senzory
-// 433Mhz radio
-RFM69 radio;
-// BMP180 tlak + teplota senzor
-SFE_BMP180 pressure;
-// MPU6050 akcelerometr + gyroskop
-MPU6050 accelgyro;
+void CanSat::setup() {
+    //vychozi stav senzoru
+    bmp180_ready = false;
+    mpu6050_ready = false;
 
-// pripravene promene pro akcelerometr a gyroskop
-int16_t ax, ay, az;
-int16_t gx, gy, gz;
-
-// buffer pro odesilanou zpravu
-char payload[VELIKOST_BUFFERU_ZRAVY];
-
-void setup() {
     //spustime seriovou komunikace
     Serial.begin(115200);
     while (!Serial) { }
     Serial.println();
-    Serial.println("Serial komunikace bezi");
+    Serial.println("[CANSAT] Serial komunikace bezi");
+
+    //vypneme WiFi (setrime energii)
+    WiFi.mode(WIFI_OFF);
 
     //spustime I2C sbernici (jsou na ni pripojene senzory)
-    Wire.begin();
+    Wire.begin(D2, D1);
 
     //nastavime 433Mhz radio
     Serial.println("nastavuji RFM69 radio");
@@ -44,7 +37,7 @@ void setup() {
     Serial.println("Nastavuji BMP180 sensor");
     if (pressure.begin()) {
         Serial.println("BMP180 pripraven");
-        CanSat::bmp180_ready = true;
+        bmp180_ready = true;
     } else {
         Serial.println("BMP180 selhal");
     }
@@ -54,23 +47,24 @@ void setup() {
     accelgyro.initialize();
     if (accelgyro.testConnection()) {
         Serial.println("MPU6050 pripraven");
-        CanSat::mpu6050_ready = true;
+        mpu6050_ready = true;
     } else {
         Serial.println("MPU6050 failed");
     }
 
     //odesilam stav zarizeni
     Serial.println("Odesilam info zakladne");
-    char initStav[50];
-    int velikost = sprintf(initStav, "INIT#TT:%d#AG:%d", CanSat::bmp180_ready ? 1 : 0, CanSat::mpu6050_ready ? 1 : 0);
-    radio.send(BASE_ID, initStav, velikost);
+    char initStav[VELIKOST_BUFFERU_ZRAVY];
+    sprintf(initStav, "INIT#TT:%d#AG:%d", bmp180_ready ? 1 : 0, mpu6050_ready ? 1 : 0);
+    radio.send(BASE_ID, initStav, VELIKOST_BUFFERU_ZRAVY);
 
     Serial.println("Spusten a pripraven k mereni");
 }
 
-void loop() {
+void CanSat::loop() {
 
     //ziskani dat od akcelerometru / gyroskopu
+    if(bmp180_ready)
     accelgyro.getMotion6(&ax, &ay, &az, &gx, &gy, &gz);
 
     //priprava promenych
@@ -94,9 +88,9 @@ void loop() {
         }
 
         //formatovani dat
-        int delkaDat = sprintf(payload, "DATA#T:%f#P:%f", T, P);
+        sprintf(payload, "DATA#T:%f#P:%f", T, P);
         //odeslani dat do zakladny
-        radio.send(BASE_ID, payload, delkaDat);
+        radio.send(BASE_ID, payload, VELIKOST_BUFFERU_ZRAVY);
     }
 
     //chvilku pockame
