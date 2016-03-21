@@ -4,7 +4,7 @@
 #include "base.h"
 
 //konstruktor tridy, inicializace
-Base::Base() : radio(SS, D2, true, D2), payloadJson(100) {
+Base::Base() : WebSocketsServer(80), radio(SS, D2, true, D2), payloadJson(100) {
 }
 
 void Base::setup() {
@@ -23,8 +23,7 @@ void Base::setup() {
     Serial.println("WiFi sit 'ShroedingersCan' bezi");
 
     //spousti Server pro pripojeni klientu (prijem dat)
-    this->webSocket = new WebSocketsServer(81);
-    this->webSocket->begin();
+    begin();
 
     //nastavuje 433 Mhz radio
     Serial.println("Nastavuji RFM69 radio");
@@ -43,17 +42,15 @@ void Base::setup() {
     ready = true;
 }
 
-void Base::loop() {
+void Base::run() {
 
     //obslouzi pripojene klienty a vyridi komunikaci
-    this->webSocket->loop();
+    loop();
 
     //pokud vsechno funguje
     if (ready) {
         //pokud nam dorazila celá zpráva přes 433Mhz
         if (radio.receiveDone()) {
-
-            Serial.println("received message");
 
             //pripravime si zpravu pro klienty
             payloadJson = "{\"sender\":";
@@ -68,10 +65,8 @@ void Base::loop() {
             }
             payloadJson += "}";
 
-            Serial.println(payloadJson);
-
             //odesleme zpravu klientum
-            this->webSocket->broadcastTXT(payloadJson);
+            broadcastTXT(payloadJson);
 
             //pokud si vysilac vyzadal potvrzeni doruceni, odesleme ho
             if (radio.ACK_REQUESTED) {
@@ -85,4 +80,17 @@ void Base::loop() {
     }
 
     delay(100);
+}
+
+void Base::runCbEvent(uint8_t num, WStype_t type, uint8_t *payload, size_t length) {
+    switch(type) {
+        case WStype_DISCONNECTED:
+            Serial.printf("[%u] Disconnected!\n", num);
+            break;
+        case WStype_CONNECTED: {
+            IPAddress ip = remoteIP(num);
+            Serial.printf("[%u] Connected from %d.%d.%d.%d url: %s\n", num, ip[0], ip[1], ip[2], ip[3], payload);
+        }
+            break;
+    }
 }

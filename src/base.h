@@ -9,10 +9,10 @@
 #ifndef CANSAT_BASE_H
 #define CANSAT_BASE_H
 
-class Base {
+class Base: private WebSocketsServer {
     public:
         void setup();
-        void loop();
+        void run();
         Base();
     private:
         bool ready;
@@ -21,8 +21,8 @@ class Base {
         RFM69 radio;
         //promena funguje jako buffer pro odesilani dat klientum
         String payloadJson;
-        //inicializace WebSocket serveru na portu 81
-        WebSocketsServer* webSocket;
+
+        void runCbEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length);
 };
 
 #endif //CANSAT_BASE_H

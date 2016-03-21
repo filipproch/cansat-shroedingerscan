@@ -1,19 +1,13 @@
 
 #include "cansat.h"
 
-CanSat::CanSat() : radio(SS, 0, true, 0), pressure(), accelgyro() {
+CanSat::CanSat() : radio(SS, 3, true, 3), pressure(), accelgyro() {
 }
 
 void CanSat::setup() {
     //vychozi stav senzoru
     bmp180_ready = false;
     mpu6050_ready = false;
-
-    //spustime seriovou komunikace
-    Serial.begin(115200);
-    while (!Serial) { }
-    Serial.println();
-    Serial.println("[CANSAT] Serial komunikace bezi");
 
     //vypneme WiFi (setrime energii)
     WiFi.mode(WIFI_OFF);
@@ -22,43 +16,43 @@ void CanSat::setup() {
     Wire.begin(D2, D1);
 
     //nastavime 433Mhz radio
-    Serial.println("nastavuji RFM69 radio");
+    //Serial.println("nastavuji RFM69 radio");
     bool response = radio.initialize(FREQUENCY, CANSAT_ID, NETWORK_ID);
     if (response) {
         radio.setHighPower();
         radio.encrypt(ENCRYPTKEY);
-        Serial.println("RFM69 nastaveno a pripojeno, sifrovani aktivni");
+        //Serial.println("RFM69 nastaveno a pripojeno, sifrovani aktivni");
     } else {
-        Serial.println("Komunikace s RFM69 selhala, zkontrolujte zapojeni...");
+        //Serial.println("Komunikace s RFM69 selhala, zkontrolujte zapojeni...");
         return;
     }
 
     //nastavuji BMP180
-    Serial.println("Nastavuji BMP180 sensor");
+    //Serial.println("Nastavuji BMP180 sensor");
     if (pressure.begin()) {
-        Serial.println("BMP180 pripraven");
+        //Serial.println("BMP180 pripraven");
         bmp180_ready = true;
     } else {
-        Serial.println("BMP180 selhal");
+        //Serial.println("BMP180 selhal");
     }
 
     //nastavuji akcelerometr/gyroskop
-    Serial.println("Nastavuji MPU6050 sensor");
+    //Serial.println("Nastavuji MPU6050 sensor");
     accelgyro.initialize();
     if (accelgyro.testConnection()) {
-        Serial.println("MPU6050 pripraven");
+        //Serial.println("MPU6050 pripraven");
         mpu6050_ready = true;
     } else {
-        Serial.println("MPU6050 failed");
+        //Serial.println("MPU6050 failed");
     }
 
     //odesilam stav zarizeni
-    Serial.println("Odesilam info zakladne");
+    //Serial.println("Odesilam info zakladne");
     char initStav[VELIKOST_BUFFERU_ZRAVY];
     sprintf(initStav, "INIT#TT:%d#AG:%d", bmp180_ready ? 1 : 0, mpu6050_ready ? 1 : 0);
     radio.send(BASE_ID, initStav, VELIKOST_BUFFERU_ZRAVY);
 
-    Serial.println("Spusten a pripraven k mereni");
+    //Serial.println("Spusten a pripraven k mereni");
 }
 
 void CanSat::loop() {
@@ -94,5 +88,5 @@ void CanSat::loop() {
     }
 
     //chvilku pockame
-    delay(100);
+    delay(1000);
 }

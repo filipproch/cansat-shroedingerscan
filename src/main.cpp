@@ -13,17 +13,15 @@ CanSat cansat;
 
 void setup() {
     #if DEVTYPE == 0
-        base = Base();
         base.setup();
     #elif DEVTYPE == 1
-        cansat = CanSat();
         cansat.setup();
     #endif
 }
 
 void loop() {
     #if DEVTYPE == 0
-        base.loop();
+        base.run();
     #elif DEVTYPE == 1
         cansat.loop();
     #endif
